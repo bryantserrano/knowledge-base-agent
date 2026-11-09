@@ -1,8 +1,17 @@
 # Knowledge Base Agent
 
-A document question-answering assistant built with FastAPI, LangChain, OpenAI, and Pinecone. A static chat interface sends questions to a Python backend, which retrieves relevant document passages and generates an answer grounded in that context.
+A public customer FAQ assistant for Ink & Anchor Tattoo Studio, built with FastAPI, LangChain, OpenAI, and Pinecone. A static chat interface sends questions to a Python backend, which retrieves relevant document passages and generates an answer grounded in that context.
 
-The intended deployment uses **Vercel** for the backend and **GitHub Pages** for the frontend. Document ingestion runs locally through a separate script.
+## Try the app
+
+Use either frontend—no customer login is required:
+
+- [GitHub Pages](https://bryantserrano.github.io/knowledge-base-agent/)
+- [Vercel](https://knowledge-base-agent-ashy.vercel.app/)
+
+Ask about studio hours, deposits, rescheduling, cancellations, or touch-ups. Both interfaces use the same Vercel backend and customer FAQ namespace. Chat may be temporarily unavailable when disabled by the administrator.
+
+Vercel hosts the backend and a copy of the frontend; GitHub Pages hosts the static frontend. Document ingestion runs locally through a separate script.
 
 > The backend, frontend, ingestion script, and GitHub Pages workflow are included. Configure credentials and ingest documents before asking questions. Use Python 3.12; the Pinecone integration does not support Python 3.14 or 3.15.
 
@@ -27,7 +36,7 @@ knowledge-base-agent/
 ├── ingestion/
 │   ├── data/                # Original private documents; excluded from FAQ ingestion
 │   ├── faqs/                # Approved customer FAQs; tracked in Git
-│   └── ingest.py            # Your document ingestion script
+│   └── ingest.py            # Customer FAQ ingestion script
 ├── public/
 │   └── index.html           # Static chat interface
 ├── .gitignore
@@ -55,14 +64,27 @@ source .venv/bin/activate
 
 On Windows PowerShell, activate it with `.venv\Scripts\Activate.ps1`.
 
+Alternatively, if you use `uv`:
+
+```bash
+uv python install 3.12
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+uv pip install --python .venv/bin/python -r requirements.txt
+```
+
+`uv venv` does not install `pip` by default; use `uv pip` to install dependencies in that environment.
+
 Backend dependencies are defined in `api/requirements.txt`:
 
 ```text
 fastapi>=0.115,<1
 pydantic>=2,<3
 uvicorn>=0.30,<1
+langchain-core>=1,<2
 langchain-openai>=1,<2
 langchain-pinecone>=0.2,<1
+pinecone>=6,<8
 python-dotenv>=1,<2
 ```
 
@@ -83,14 +105,19 @@ Copy `.env.example` to `.env` and fill in your credentials, or export these vari
 ```bash
 export OPENAI_API_KEY="your-openai-api-key"
 export PINECONE_API_KEY="your-pinecone-api-key"
-export PINECONE_INDEX_NAME="your-index-name"
+export PINECONE_INDEX_NAME="knowledge-base"
+export PINECONE_NAMESPACE="customer-faqs"
+export CHAT_ENABLED="true"
 ```
 
 | Variable | Purpose |
 | --- | --- |
 | `OPENAI_API_KEY` | OpenAI embeddings and chat generation |
 | `PINECONE_API_KEY` | Access to the Pinecone index |
-| `PINECONE_INDEX_NAME` | Name of the index containing document vectors |
+| `PINECONE_INDEX_NAME` | Pinecone index name: `knowledge-base` |
+| `PINECONE_NAMESPACE` | Collection inside the index: `customer-faqs` |
+| `CHAT_ENABLED` | Set `false` to disable chat; defaults to `true` |
+| `ALLOWED_ORIGINS` | Comma-separated frontend origins permitted by browser CORS |
 
 Both scripts load `.env`. `PINECONE_NAMESPACE` defaults to `customer-faqs`. Set `ALLOWED_ORIGINS` to a comma-separated list of frontend origins. Create the Pinecone index with 1536 dimensions and cosine similarity for the default embedding configuration.
 
@@ -144,7 +171,7 @@ curl -X POST http://localhost:8000/api/chat \
 
 ### Run the frontend
 
-The interface in `public/index.html` defaults to the local chat endpoint:
+The committed frontend points to the production backend. To test against your local backend, temporarily change `BACKEND_URL` in `public/index.html` to:
 
 ```javascript
 const BACKEND_URL = "http://localhost:8000/api/chat";
@@ -156,7 +183,7 @@ Serve the frontend in another terminal:
 python -m http.server 8080 --directory public
 ```
 
-Open <http://localhost:8080> and send a question.
+Open <http://localhost:8080> and send a question. Restore the production backend URL before publishing.
 
 ## API
 
@@ -166,7 +193,7 @@ Request body:
 
 ```json
 {
-  "question": "What is the document retention policy?"
+  "question": "What are the studio working hours?"
 }
 ```
 
@@ -178,7 +205,7 @@ Successful response:
 }
 ```
 
-The endpoint returns HTTP `502` when retrieval or generation fails. `GET /api/health` reports application readiness after startup; it does not check provider availability on each call. FastAPI validates the request body and returns HTTP `422` for invalid input, such as a missing `question` field. The current response contains an answer only; source citations are not included.
+The endpoint returns HTTP `503` when chat is disabled and HTTP `502` when retrieval or generation fails. `GET /api/health` reports application readiness after startup; it does not check provider availability on each call. FastAPI validates the request body and returns HTTP `422` for invalid input, such as a missing `question` field. The current response contains an answer only; source citations are not included.
 
 ## Deployment
 
@@ -187,7 +214,35 @@ The endpoint returns HTTP `502` when retrieval or generation fails. `GET /api/he
 1. Push the application files to your repository.
 2. Import the repository into Vercel and configure its Python/FastAPI deployment so requests to `/api/chat` reach `api/index.py`.
 3. Add `OPENAI_API_KEY`, `PINECONE_API_KEY`, and `PINECONE_INDEX_NAME` as Vercel environment variables. Set `PINECONE_NAMESPACE` consistently and `ALLOWED_ORIGINS` to your GitHub Pages origin.
-4. Deploy and test the public `/api/chat` endpoint.
+4. Deploy, check `/api/health`, and test the public `/api/chat` endpoint.
+
+Production configuration (add real keys in Vercel, never in this file):
+
+```dotenv
+OPENAI_API_KEY=your-openai-key
+PINECONE_API_KEY=your-pinecone-key
+PINECONE_INDEX_NAME=knowledge-base
+PINECONE_NAMESPACE=customer-faqs
+CHAT_ENABLED=true
+ALLOWED_ORIGINS=https://bryantserrano.github.io,https://knowledge-base-agent-ashy.vercel.app
+```
+
+`knowledge-base` is the **index**, while `customer-faqs` is the **namespace inside it**. Using the namespace as `PINECONE_INDEX_NAME` causes a Pinecone `404 Resource customer-faqs not found` during startup. The API key must belong to the project containing the index.
+
+Environment variables in local `.env` are not uploaded automatically. Set the Production environment variables in Vercel and redeploy after changes.
+
+Use the stable production domain, `https://knowledge-base-agent-ashy.vercel.app`, rather than a generated per-deployment URL. Under Standard Protection, generated URLs may require Vercel sign-in. The customer-facing production API must be publicly accessible; check its health endpoint in a private browser window:
+
+[Production API health](https://knowledge-base-agent-ashy.vercel.app/api/health)
+
+Expected when enabled:
+
+```json
+{"status":"ok","chat_enabled":true}
+```
+
+A healthy startup does not verify answer generation. Ask a known FAQ from each frontend to test the full flow. The Vercel deployment can also serve the static interface from `public/`.
+
 
 The `api/index.py` entrypoint uses Vercel’s FastAPI support. See the [Vercel FastAPI deployment guide](https://vercel.com/docs/frameworks/backend/fastapi). Verify the deployment logs and execution limits for your project.
 
@@ -196,7 +251,7 @@ The `api/index.py` entrypoint uses Vercel’s FastAPI support. See the [Vercel F
 1. Set the frontend endpoint to your deployed backend URL:
 
    ```javascript
-   const BACKEND_URL = "https://your-project.vercel.app/api/chat";
+   const BACKEND_URL = "https://knowledge-base-agent-ashy.vercel.app/api/chat";
    ```
 
 2. Select **GitHub Actions** as the Pages publishing source in repository settings. The included `.github/workflows/pages.yml` deploys `public/` on pushes to `main` or manual runs.
@@ -204,12 +259,12 @@ The `api/index.py` entrypoint uses Vercel’s FastAPI support. See the [Vercel F
 
 GitHub Pages branch publishing does not directly select an arbitrary `public/` directory. Use an Actions workflow for this layout, or move the frontend to a supported publishing location.
 
-In the backend CORS configuration, replace the wildcard origin with your frontend origin, for example `https://your-username.github.io`. Origins do not include repository paths.
+Configure `ALLOWED_ORIGINS` with both frontend origins shown above. Origins do not include repository paths, so use `https://bryantserrano.github.io`, without `/knowledge-base-agent/`.
 
 ## Before exposing the application publicly
 
 - Keep API keys on the backend and in your local environment; never put them in frontend JavaScript.
-- Add authentication and rate limiting if access should be restricted. CORS alone does not restrict who can call the API.
+- The customer FAQ chat is public and does not require login. Ingest only approved public content. Rate limiting is not implemented in the app; configure abuse controls before broader promotion. CORS and prompt instructions do not authenticate callers.
 - The frontend renders messages with `textContent` and checks HTTP errors. The backend validates questions, fails startup on missing configuration, logs provider errors, and returns generic error messages.
 
 ## Git ignore rules
@@ -232,6 +287,11 @@ ingestion/data/
 | Problem | What to check |
 | --- | --- |
 | Backend fails during initialization | Environment variables, Pinecone index access, and LangChain import compatibility |
+| Pinecone reports `Resource customer-faqs not found` | Set index to `knowledge-base`, namespace to `customer-faqs`, then redeploy |
+| API redirects to Vercel login | Use the production domain and check Deployment Protection settings |
+| GitHub Actions reports Pages site not found | Select GitHub Actions under repository Settings → Pages → Source, then rerun the workflow |
+| Health returns `FUNCTION_INVOCATION_FAILED` | Inspect Vercel runtime logs for the startup traceback and verify Production environment variables |
+| Chat returns HTTP `503` | Check `CHAT_ENABLED`; set `true` and restart or redeploy to enable |
 | Browser cannot connect | Full backend URL including `/api/chat`, deployment routing, and CORS origin |
 | Answers lack useful context | Successful ingestion, matching embedding configuration, index, and namespace |
 | Requests return server errors | Backend logs, provider credentials, quotas, and serverless time limits |
