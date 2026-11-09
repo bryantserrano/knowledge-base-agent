@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Knowledge Base Agent</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; background: #f4f4f9; color: #243047; }
+    main { max-width: 640px; margin: 5vh auto; background: white; border-radius: 16px; box-shadow: 0 8px 32px #24304715; overflow: hidden; }
+    header { padding: 24px; border-bottom: 1px solid #eee; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    p { margin: 0; color: #566; }
+    #chatBox { height: 420px; overflow-y: auto; padding: 24px; }
+    .message { width: fit-content; max-width: 90%; margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; background: #edf0f5; }
+    .user { margin-left: auto; background: #245bd6; color: white; }
+    form { display: flex; gap: 8px; padding: 16px; border-top: 1px solid #eee; }
+    input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #b6bdca; border-radius: 8px; font: inherit; }
+    button { padding: 12px 20px; border: 0; border-radius: 8px; background: #245bd6; color: white; font: inherit; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+  </style>
+</head>
+<body>
+  <main>
+    <header><h1>Knowledge Base Agent</h1><p>Ask questions about your documents.</p></header>
+    <div id="chatBox" role="log" aria-live="polite" aria-label="Conversation">
+      <div class="message">Hello! Ask me anything about the ingested documents.</div>
+    </div>
+    <form id="chatForm">
+      <input id="userInput" aria-label="Your question" placeholder="Type your question…" maxlength="4000" required>
+      <button id="sendButton" type="submit">Send</button>
+    </form>
+  </main>
+  <script>
+    // Set the full deployed endpoint before publishing to GitHub Pages.
+    const BACKEND_URL = "http://localhost:8000/api/chat";
+    const chatBox = document.getElementById("chatBox");
+    const input = document.getElementById("userInput");
+    const button = document.getElementById("sendButton");
+    let pending = false;
+
+    function addMessage(text, role = "bot") {
+      const message = document.createElement("div");
+      message.className = `message ${role}`;
+      message.textContent = text;
+      chatBox.appendChild(message);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    document.getElementById("chatForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const question = input.value.trim();
+      if (!question || pending) return;
+      pending = true;
+      button.disabled = true;
+      button.textContent = "Thinking…";
+      addMessage(question, "user");
+      input.value = "";
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+      try {
+        const response = await fetch(BACKEND_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question }),
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`Server returned ${response.status}. Please try again.`);
+        const data = await response.json();
+        if (typeof data.answer !== "string") throw new Error("The server returned an unexpected response.");
+        addMessage(data.answer);
+      } catch (error) {
+        addMessage(error.name === "AbortError" ? "The request timed out. Please try again." : `Unable to get an answer. ${error.message}`);
+      } finally {
+        clearTimeout(timeout);
+        pending = false;
+        button.disabled = false;
+        button.textContent = "Send";
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -4,7 +4,7 @@ A document question-answering assistant built with FastAPI, LangChain, OpenAI, a
 
 The intended deployment uses **Vercel** for the backend and **GitHub Pages** for the frontend. Document ingestion runs locally through a separate script.
 
-> This README describes the planned project structure and the supplied backend and frontend examples. Application files and the ingestion script still need to be added.
+> The backend, frontend, ingestion script, and GitHub Pages workflow are included. Configure credentials and ingest documents before asking questions. Use Python 3.10 or newer.
 
 ## How it works
 
@@ -54,23 +54,18 @@ source .venv/bin/activate
 
 On Windows PowerShell, activate it with `.venv\Scripts\Activate.ps1`.
 
-Add the supplied backend dependencies to `api/requirements.txt`:
+Backend dependencies are defined in `api/requirements.txt`:
 
 ```text
-fastapi
-pydantic
-uvicorn
-langchain
-langchain-openai
-langchain-pinecone
+fastapi>=0.115,<1
+pydantic>=2,<3
+uvicorn>=0.30,<1
+langchain-openai>=1,<2
+langchain-pinecone>=0.2,<1
+python-dotenv>=1,<2
 ```
 
-The root `requirements.txt` can include the backend requirements, followed by the loaders and text-splitting dependencies your ingestion script needs:
-
-```text
--r api/requirements.txt
-# Add dependencies required by ingestion/ingest.py.
-```
+The root `requirements.txt` includes backend dependencies plus PDF/DOCX loaders and text splitters for local ingestion.
 
 Install the local dependencies:
 
@@ -78,11 +73,11 @@ Install the local dependencies:
 python -m pip install -r requirements.txt
 ```
 
-The supplied backend imports retrieval-chain helpers from `langchain.chains`. Confirm that your installed LangChain version supports those imports, or adapt the imports to your chosen version. Pin dependency versions after verifying the application.
+Retrieval and generation use the LangChain integration packages directly, without the legacy `langchain.chains` helpers.
 
 ### Environment variables
 
-Set these in the terminal where you run the backend and ingestion script:
+Copy `.env.example` to `.env` and fill in your credentials, or export these variables:
 
 ```bash
 export OPENAI_API_KEY="your-openai-api-key"
@@ -96,23 +91,23 @@ export PINECONE_INDEX_NAME="your-index-name"
 | `PINECONE_API_KEY` | Access to the Pinecone index |
 | `PINECONE_INDEX_NAME` | Name of the index containing document vectors |
 
-If you prefer a `.env` file, add an environment-loading mechanism to your scripts. The supplied backend reads process environment variables and does not automatically load `.env`.
+Both scripts load `.env`. `PINECONE_NAMESPACE` defaults to `documents`. Set `ALLOWED_ORIGINS` to a comma-separated list of frontend origins. Create the Pinecone index with 1536 dimensions and cosine similarity for the default embedding configuration.
 
 ### Ingest documents
 
-Add your ingestion implementation at `ingestion/ingest.py`, then place documents in `ingestion/data/` and run:
+Place PDF or DOCX documents in `ingestion/data/` and run:
 
 ```bash
 python ingestion/ingest.py
 ```
 
-This command assumes the script is designed to run from the repository root. Supported document formats and any command-line options depend on your implementation.
+The script resolves document paths relative to the repository, including nested directories. Legacy `.doc` files are not supported.
 
-The script should load documents, split them into chunks, generate embeddings with `text-embedding-3-small`, and upload them to the same Pinecone index used by the backend. Keep embedding configuration and any Pinecone namespace consistent between ingestion and retrieval. Use stable vector IDs or another duplicate-handling strategy when re-ingesting documents.
+The script splits documents into 1000-character chunks with 200 characters of overlap and uploads embeddings to the configured index and namespace. Stable IDs prevent duplicate vectors for unchanged chunks. Modified or removed documents can leave old vectors behind; clean up those vectors before replacing a document collection.
 
 ### Run the backend
 
-Save the supplied FastAPI implementation as `api/index.py`, then run from the repository root:
+Run from the repository root:
 
 ```bash
 python -m uvicorn api.index:app --reload --port 8000
@@ -130,7 +125,7 @@ curl -X POST http://localhost:8000/api/chat \
 
 ### Run the frontend
 
-Save the supplied interface as `public/index.html`. Set its `BACKEND_URL` to the complete chat endpoint:
+The interface in `public/index.html` defaults to the local chat endpoint:
 
 ```javascript
 const BACKEND_URL = "http://localhost:8000/api/chat";
@@ -164,18 +159,18 @@ Successful response:
 }
 ```
 
-The supplied endpoint returns HTTP `500` when retrieval or generation fails. FastAPI validates the request body and returns HTTP `422` for invalid input, such as a missing `question` field. The current response contains an answer only; source citations are not included.
+The endpoint returns HTTP `502` when retrieval or generation fails. `GET /api/health` reports application readiness after startup; it does not check provider availability on each call. FastAPI validates the request body and returns HTTP `422` for invalid input, such as a missing `question` field. The current response contains an answer only; source citations are not included.
 
 ## Deployment
 
 ### Backend: Vercel
 
-1. Add the backend application and dependency files to the repository.
+1. Push the application files to your repository.
 2. Import the repository into Vercel and configure its Python/FastAPI deployment so requests to `/api/chat` reach `api/index.py`.
-3. Add `OPENAI_API_KEY`, `PINECONE_API_KEY`, and `PINECONE_INDEX_NAME` as Vercel environment variables.
+3. Add `OPENAI_API_KEY`, `PINECONE_API_KEY`, and `PINECONE_INDEX_NAME` as Vercel environment variables. Set `PINECONE_NAMESPACE` consistently and `ALLOWED_ORIGINS` to your GitHub Pages origin.
 4. Deploy and test the public `/api/chat` endpoint.
 
-The directory layout alone does not provide a complete deployment configuration. Verify routing, dependency installation, and serverless execution limits for your Vercel project.
+The `api/index.py` entrypoint uses Vercel’s FastAPI support. See the [Vercel FastAPI deployment guide](https://vercel.com/docs/frameworks/backend/fastapi). Verify the deployment logs and execution limits for your project.
 
 ### Frontend: GitHub Pages
 
@@ -185,7 +180,7 @@ The directory layout alone does not provide a complete deployment configuration.
    const BACKEND_URL = "https://your-project.vercel.app/api/chat";
    ```
 
-2. Configure GitHub Pages to deploy through GitHub Actions, with a workflow that uploads `public/` as the Pages artifact and deploys it.
+2. Select **GitHub Actions** as the Pages publishing source in repository settings. The included `.github/workflows/pages.yml` deploys `public/` on pushes to `main` or manual runs.
 3. Open your published Pages URL and test a question.
 
 GitHub Pages branch publishing does not directly select an arbitrary `public/` directory. Use an Actions workflow for this layout, or move the frontend to a supported publishing location.
@@ -196,10 +191,7 @@ In the backend CORS configuration, replace the wildcard origin with your fronten
 
 - Keep API keys on the backend and in your local environment; never put them in frontend JavaScript.
 - Add authentication and rate limiting if access should be restricted. CORS alone does not restrict who can call the API.
-- Render user and model messages with DOM methods such as `textContent`. The supplied frontend interpolates text into `innerHTML`, which can render untrusted HTML.
-- Check `response.ok` in the frontend before treating a response as successful.
-- Make backend initialization failures explicit. The supplied initialization handler logs errors but leaves requests unable to use `rag_chain` if setup failed.
-- Log detailed errors on the server and return a generic error message to clients.
+- The frontend renders messages with `textContent` and checks HTTP errors. The backend validates questions, fails startup on missing configuration, logs provider errors, and returns generic error messages.
 
 ## Git ignore rules
 
@@ -224,4 +216,4 @@ ingestion/data/
 | Browser cannot connect | Full backend URL including `/api/chat`, deployment routing, and CORS origin |
 | Answers lack useful context | Successful ingestion, matching embedding configuration, index, and namespace |
 | Requests return server errors | Backend logs, provider credentials, quotas, and serverless time limits |
-| Ingestion command fails | The script has been added, its dependencies are installed, and document paths match its implementation |
+| Ingestion command fails | Dependencies are installed and PDF/DOCX files exist in ingestion/data/ |
