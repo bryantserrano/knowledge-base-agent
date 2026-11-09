@@ -4,7 +4,7 @@ A document question-answering assistant built with FastAPI, LangChain, OpenAI, a
 
 The intended deployment uses **Vercel** for the backend and **GitHub Pages** for the frontend. Document ingestion runs locally through a separate script.
 
-> The backend, frontend, ingestion script, and GitHub Pages workflow are included. Configure credentials and ingest documents before asking questions. Use Python 3.10 or newer.
+> The backend, frontend, ingestion script, and GitHub Pages workflow are included. Configure credentials and ingest documents before asking questions. Use Python 3.12; the Pinecone integration does not support Python 3.14 or 3.15.
 
 ## How it works
 
@@ -25,7 +25,7 @@ knowledge-base-agent/
 │   ├── index.py             # FastAPI app with LangChain and Pinecone
 │   └── requirements.txt     # Backend dependencies
 ├── ingestion/
-│   ├── data/                # Local Word/PDF documents; git-ignored
+│   ├── data/                # Local PDF/DOCX/TXT documents; git-ignored
 │   └── ingest.py            # Your document ingestion script
 ├── public/
 │   └── index.html           # Static chat interface
@@ -36,7 +36,7 @@ knowledge-base-agent/
 
 ## Prerequisites
 
-- Python and a virtual environment.
+- Python 3.12 and a virtual environment (the version is recorded in `.python-version`).
 - An OpenAI API key.
 - A Pinecone API key and an existing index configured for your embedding output dimensions.
 - Vercel and GitHub accounts for deployment.
@@ -48,7 +48,7 @@ OpenAI and Pinecone usage may incur charges.
 From the repository root, create and activate a virtual environment:
 
 ```bash
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -65,7 +65,7 @@ langchain-pinecone>=0.2,<1
 python-dotenv>=1,<2
 ```
 
-The root `requirements.txt` includes backend dependencies plus PDF/DOCX loaders and text splitters for local ingestion.
+The root `requirements.txt` includes backend dependencies plus PDF/DOCX readers and text splitters for local ingestion.
 
 Install the local dependencies:
 
@@ -95,7 +95,7 @@ Both scripts load `.env`. `PINECONE_NAMESPACE` defaults to `documents`. Set `ALL
 
 ### Ingest documents
 
-Place PDF or DOCX documents in `ingestion/data/` and run:
+Place PDF, DOCX, or UTF-8 TXT documents in `ingestion/data/` and run:
 
 ```bash
 python ingestion/ingest.py
@@ -216,4 +216,4 @@ ingestion/data/
 | Browser cannot connect | Full backend URL including `/api/chat`, deployment routing, and CORS origin |
 | Answers lack useful context | Successful ingestion, matching embedding configuration, index, and namespace |
 | Requests return server errors | Backend logs, provider credentials, quotas, and serverless time limits |
-| Ingestion command fails | Dependencies are installed and PDF/DOCX files exist in ingestion/data/ |
+| Ingestion command fails | Dependencies are installed and PDF/DOCX/TXT files exist in ingestion/data/ |

@@ -1,5 +1,7 @@
+# Backend packages are included through this file; do not remove this line.
 -r api/requirements.txt
-langchain-community>=0.3,<1
+
+# Local PDF/DOCX/TXT ingestion.
 langchain-text-splitters>=0.3,<2
 pypdf>=5,<7
 docx2txt>=0.8,<1
