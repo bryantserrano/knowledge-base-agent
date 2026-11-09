@@ -1,84 +1,113 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Knowledge Base Agent</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 24px; font: 16px system-ui, sans-serif; background: #f4f4f9; color: #243047; }
-    main { max-width: 640px; margin: 5vh auto; background: white; border-radius: 16px; box-shadow: 0 8px 32px #24304715; overflow: hidden; }
-    header { padding: 24px; border-bottom: 1px solid #eee; }
-    h1 { margin: 0 0 8px; font-size: 24px; }
-    p { margin: 0; color: #566; }
-    #chatBox { height: 420px; overflow-y: auto; padding: 24px; }
-    .message { width: fit-content; max-width: 90%; margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; background: #edf0f5; }
-    .user { margin-left: auto; background: #245bd6; color: white; }
-    form { display: flex; gap: 8px; padding: 16px; border-top: 1px solid #eee; }
-    input { min-width: 0; flex: 1; padding: 12px; border: 1px solid #b6bdca; border-radius: 8px; font: inherit; }
-    button { padding: 12px 20px; border: 0; border-radius: 8px; background: #245bd6; color: white; font: inherit; cursor: pointer; }
-    button:disabled { opacity: .6; cursor: wait; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#222523">
+<title>Ink & Anchor — Studio Assistant</title>
+<style>
+:root{--ink:#242723;--paper:#f7f5ef;--muted:#77786e;--copper:#986440;--line:#e2e0d7}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.6 system-ui,sans-serif}button,input{font:inherit}button{cursor:pointer}button:disabled{cursor:wait;opacity:.5}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #bb895f;outline-offset:4px}.app{min-height:100dvh;display:grid;grid-template-columns:280px 1fr}aside{background:#222523;color:#f6f2e9;padding:38px 30px;display:flex;flex-direction:column;position:relative;overflow:hidden}.brand{display:flex;align-items:center;gap:12px;font:23px Georgia,serif;letter-spacing:-.5px}.mark{font-size:32px;color:#c79c76}.eyebrow{text-transform:uppercase;letter-spacing:2px;font-size:10px;font-weight:650}.brand-sub{color:#a8aaa1;margin:5px 0 38px 44px;font-size:9px;letter-spacing:2.4px}.new{border:1px solid #64665b;background:transparent;color:#eee9df;padding:12px 15px;text-align:left;border-radius:5px}.new span{margin-right:12px;color:#d3ae8a}.side-label{margin-top:38px;color:#9b9e92}.side-item{padding:12px 0;color:#d4d5cc;border-bottom:1px solid #ffffff0c;font-size:13px}.side-item span{color:#b88b68;margin-right:12px}.side-art{font:150px/1 Georgia,serif;color:#ffffff08;text-align:center;margin:auto 0;user-select:none}.side-bottom{font-size:12px;color:#a8aaa1}.side-bottom strong{display:block;color:#e6e6dc;font-weight:500;margin-bottom:4px}.main{display:flex;flex-direction:column;min-width:0;height:100dvh}.topbar{height:84px;flex-shrink:0;border-bottom:1px solid var(--line);padding:0 44px;display:flex;align-items:center;justify-content:space-between}.top-title{font-size:13px;font-weight:550}.tag{border:1px solid #d9d7cc;border-radius:30px;padding:5px 11px;color:#77796e;font-size:11px;letter-spacing:.3px}.tag i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#a27a55;margin-right:7px}.scroll{flex:1;overflow-y:auto;padding:46px 30px 22px}.welcome{max-width:740px;margin:0 auto}.intro{text-align:center;padding:18px 0 40px}.intro-mark{width:58px;height:58px;margin:0 auto 22px;border:1px solid #d7c6b3;border-radius:50%;display:grid;place-items:center;color:var(--copper);font-size:27px}.intro .eyebrow{color:var(--copper)}h1{font:46px/1.16 Georgia,serif;letter-spacing:-1.5px;margin:14px 0 17px;font-weight:400}.intro p{color:var(--muted);max-width:410px;margin:auto;font-size:14px}.suggestions{display:grid;grid-template-columns:1fr 1fr;gap:12px}.suggestion{background:#fbfaf6;border:1px solid var(--line);padding:20px 22px;border-radius:7px;text-align:left;color:var(--ink);transition:border-color .2s,transform .2s;position:relative}.suggestion:hover{border-color:#ac8865;transform:translateY(-2px)}.suggestion .symbol{display:block;color:var(--copper);font-size:20px;margin-bottom:11px}.suggestion strong{font-size:13px;font-weight:600;display:block}.suggestion small{color:var(--muted);font-size:12px}.suggestion .arrow{position:absolute;right:20px;top:21px;color:#a2a296}.note{text-align:center;color:#8a8b80;font-size:11px;margin:23px 0}.conversation{max-width:740px;margin:0 auto}.message{margin:25px 0;animation:appear .2s ease-out}.message.user{margin-left:auto;background:#eae5da;width:fit-content;max-width:85%;padding:13px 20px;border-radius:14px 14px 3px 14px}.author{font-size:10px;letter-spacing:1.5px;color:var(--copper);font-weight:650;margin-bottom:9px}.answer{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.85}.copy{margin-top:12px;background:transparent;border:0;color:var(--muted);padding:3px 0;font-size:11px}.copy:hover{color:var(--copper)}.typing{color:var(--muted);font-size:13px}.typing span{animation:pulse 1s infinite;display:inline-block}.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}.composer-area{padding:18px 30px 22px;background:var(--paper)}form{max-width:740px;margin:auto;display:flex;gap:12px;align-items:center;padding:10px 12px 10px 20px;border:1px solid #d5d2c6;background:#fffefa;border-radius:10px;box-shadow:0 5px 20px #22252305}input{flex:1;min-width:0;background:transparent;border:0;color:var(--ink);padding:7px 0;font-size:14px}input:focus{outline:none}input::placeholder{color:#939387}.send{border:0;border-radius:6px;background:var(--ink);color:#fffdf4;width:39px;height:39px;font-size:21px}.footer-note{text-align:center;font-size:10px;color:#898a7e;margin:11px 0 0}.footer-note span{margin:0 7px;color:#b8b6aa}[hidden]{display:none!important}@keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}@keyframes pulse{50%{opacity:.25}}@media(min-height:850px){.scroll{padding-top:70px}.intro{padding-bottom:50px}}@media(max-width:900px){.app{grid-template-columns:220px 1fr}aside{padding:30px 22px}.brand{font-size:20px}.topbar{padding:0 28px}h1{font-size:39px}}@media(max-width:650px){.app{display:block}aside{display:none}.topbar{height:65px;padding:0 20px}.scroll{padding:26px 20px 12px}h1{font-size:36px}.intro{padding:10px 0 28px}.suggestions{gap:9px}.suggestion{padding:16px}.suggestion small{display:block;font-size:11px}.suggestion .arrow{right:12px;top:14px}.composer-area{padding:12px 16px 18px}.note{margin:16px 0}.tag{font-size:10px}.mobile-new{display:block!important;background:none;border:0;font-size:12px;color:var(--copper);padding:0;margin-top:8px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
-  <main>
-    <header><h1>Knowledge Base Agent</h1><p>Ask questions about your documents.</p></header>
-    <div id="chatBox" role="log" aria-live="polite" aria-label="Conversation">
-      <div class="message">Hello! Ask me anything about the ingested documents.</div>
-    </div>
-    <form id="chatForm">
-      <input id="userInput" aria-label="Your question" placeholder="Type your question…" maxlength="4000" required>
-      <button id="sendButton" type="submit">Send</button>
-    </form>
-  </main>
-  <script>
-    // Set the full deployed endpoint before publishing to GitHub Pages.
-    const BACKEND_URL = "http://localhost:8000/api/chat";
-    const chatBox = document.getElementById("chatBox");
-    const input = document.getElementById("userInput");
-    const button = document.getElementById("sendButton");
-    let pending = false;
-
-    function addMessage(text, role = "bot") {
-      const message = document.createElement("div");
-      message.className = `message ${role}`;
-      message.textContent = text;
-      chatBox.appendChild(message);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    document.getElementById("chatForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const question = input.value.trim();
-      if (!question || pending) return;
-      pending = true;
-      button.disabled = true;
-      button.textContent = "Thinking…";
-      addMessage(question, "user");
-      input.value = "";
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000);
-      try {
-        const response = await fetch(BACKEND_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error(`Server returned ${response.status}. Please try again.`);
-        const data = await response.json();
-        if (typeof data.answer !== "string") throw new Error("The server returned an unexpected response.");
-        addMessage(data.answer);
-      } catch (error) {
-        addMessage(error.name === "AbortError" ? "The request timed out. Please try again." : `Unable to get an answer. ${error.message}`);
-      } finally {
-        clearTimeout(timeout);
-        pending = false;
-        button.disabled = false;
-        button.textContent = "Send";
-        input.focus();
-      }
+<div class="app">
+<aside aria-label="Studio information">
+  <div class="brand"><span class="mark" aria-hidden="true">⚓</span> Ink & Anchor</div>
+  <div class="brand-sub">TATTOO STUDIO · EST. 2018</div>
+  <button class="new" data-reset><span aria-hidden="true">＋</span>New conversation</button>
+  <div class="eyebrow side-label">Your studio, explained</div>
+  <div class="side-item"><span aria-hidden="true">◷</span>Hours & visiting</div>
+  <div class="side-item"><span aria-hidden="true">◇</span>Bookings & deposits</div>
+  <div class="side-item"><span aria-hidden="true">✧</span>Care & preparation</div>
+  <div class="side-art" aria-hidden="true">&</div>
+  <div class="side-bottom"><strong>A little clarity before the ink.</strong>Answers from our studio documents.</div>
+</aside>
+<main class="main">
+  <header class="topbar"><div><div class="top-title">Studio assistant</div><button class="mobile-new" data-reset hidden>＋ New conversation</button></div><div class="tag"><i aria-hidden="true"></i>Document-grounded answers</div></header>
+  <div class="scroll" id="scrollArea">
+    <section class="welcome" id="welcome" aria-label="Welcome">
+      <div class="intro"><div class="intro-mark" aria-hidden="true">✧</div><div class="eyebrow">THE INK & ANCHOR GUIDE</div><h1>Good questions.<br>Clear answers.</h1><p>From your first appointment to your final touch-up.<br>Get to know the way our studio works.</p></div>
+      <div class="suggestions">
+        <button class="suggestion" data-question="What are the studio's working hours?"><span class="symbol" aria-hidden="true">◷</span><span class="arrow" aria-hidden="true">↗</span><strong>Plan your visit</strong><small>What are your working hours?</small></button>
+        <button class="suggestion" data-question="How do deposits and cancellations work?"><span class="symbol" aria-hidden="true">◇</span><span class="arrow" aria-hidden="true">↗</span><strong>Before you book</strong><small>Deposits, rescheduling & cancellations</small></button>
+        <button class="suggestion" data-question="What aftercare instructions does the studio provide?"><span class="symbol" aria-hidden="true">✧</span><span class="arrow" aria-hidden="true">↗</span><strong>Care for your ink</strong><small>Explore our documented aftercare</small></button>
+        <button class="suggestion" data-question="What is the studio's touch-up policy?"><span class="symbol" aria-hidden="true">↻</span><span class="arrow" aria-hidden="true">↗</span><strong>The finishing touches</strong><small>Learn about our touch-up policy</small></button>
+      </div>
+      <p class="note">Pick a question above, or make it your own below.</p>
+    </section>
+    <div class="conversation" id="chatBox" role="log" aria-live="polite" aria-label="Conversation"></div>
+  </div>
+  <div class="composer-area"><form id="chatForm"><input id="userInput" aria-label="Your question" placeholder="Ask us something about the studio…" maxlength="4000" autocomplete="off" required><button class="send" id="sendButton" type="submit" aria-label="Send question">↑</button></form><p class="footer-note">Based on studio documents<span>·</span>AI answers may contain mistakes</p></div>
+</main>
+</div>
+<script>
+// Set the full deployed endpoint before publishing to GitHub Pages.
+const BACKEND_URL = "http://localhost:8000/api/chat";
+const chatBox = document.getElementById('chatBox');
+const input = document.getElementById('userInput');
+const button = document.getElementById('sendButton');
+const welcome = document.getElementById('welcome');
+const scrollArea = document.getElementById('scrollArea');
+let pending = false;
+function scrollToLatest() { scrollArea.scrollTop = scrollArea.scrollHeight; }
+function addMessage(text, role = 'bot', error = false) {
+  const message = document.createElement('div');
+  message.className = `message ${role}`;
+  if (role === 'bot') {
+    const author = document.createElement('div');
+    author.className = 'author'; author.textContent = error ? 'CONNECTION NOTICE' : 'INK & ANCHOR';
+    message.append(author);
+  }
+  const content = document.createElement('div');
+  content.className = 'answer';
+  // Render lightweight emphasis safely without interpreting HTML.
+  text.split(/(\*\*[^*]+\*\*)/g).forEach(part => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const strong = document.createElement('strong'); strong.textContent = part.slice(2, -2); content.append(strong);
+    } else content.append(document.createTextNode(part));
+  });
+  message.append(content);
+  if (role === 'bot' && !error) {
+    const copy = document.createElement('button'); copy.className = 'copy'; copy.textContent = 'Copy answer';
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(text); copy.textContent = 'Copied'; }
+      catch { copy.textContent = 'Unable to copy'; }
+      setTimeout(() => { copy.textContent = 'Copy answer'; }, 2000);
     });
-  </script>
+    message.append(copy);
+  }
+  chatBox.append(message); scrollToLatest(); return message;
+}
+async function sendQuestion(question) {
+  if (!question || pending) return;
+  pending = true; welcome.hidden = true; button.disabled = true;
+  document.querySelectorAll('[data-reset]').forEach(el => el.disabled = true);
+  addMessage(question, 'user'); input.value = '';
+  const typing = document.createElement('div'); typing.className = 'message typing';
+  typing.setAttribute('role', 'status'); typing.textContent = 'Reading the studio documents ';
+  for (let i = 0; i < 3; i++) { const dot = document.createElement('span'); dot.textContent = '.'; typing.append(dot); }
+  chatBox.append(typing); scrollToLatest();
+  const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 60000);
+  try {
+    const response = await fetch(BACKEND_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question}),signal:controller.signal});
+    if (!response.ok) throw new Error(`The server returned ${response.status}. Please try again.`);
+    const data = await response.json();
+    if (typeof data.answer !== 'string') throw new Error('The server returned an unexpected response.');
+    typing.remove(); addMessage(data.answer);
+  } catch (error) {
+    typing.remove(); addMessage(error.name === 'AbortError' ? 'That took a little too long. Please try your question again.' : `We couldn't reach an answer. Check that the backend is running and try again. ${error.message}`, 'bot', true);
+  } finally {
+    clearTimeout(timeout); pending = false; button.disabled = false;
+    document.querySelectorAll('[data-reset]').forEach(el => el.disabled = false);
+    input.focus();
+  }
+}
+document.getElementById('chatForm').addEventListener('submit', event => {event.preventDefault(); sendQuestion(input.value.trim());});
+document.querySelectorAll('[data-question]').forEach(el => el.addEventListener('click', () => sendQuestion(el.dataset.question)));
+document.querySelectorAll('[data-reset]').forEach(el => el.addEventListener('click', () => {
+  if (pending) return;
+  chatBox.replaceChildren(); welcome.hidden = false; input.value = ''; scrollArea.scrollTop = 0; input.focus();
+}));
+</script>
 </body>
 </html>
