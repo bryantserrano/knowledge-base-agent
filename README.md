@@ -8,7 +8,7 @@ The intended deployment uses **Vercel** for the backend and **GitHub Pages** for
 
 ## How it works
 
-1. Place source documents in `ingestion/data/`.
+1. Place approved customer FAQ documents in `ingestion/faqs/`.
 2. Run your ingestion script to load, chunk, embed, and upload documents to Pinecone.
 3. Ask a question through the browser interface.
 4. The backend embeds the question and retrieves the three most relevant chunks.
@@ -25,7 +25,8 @@ knowledge-base-agent/
 │   ├── index.py             # FastAPI app with LangChain and Pinecone
 │   └── requirements.txt     # Backend dependencies
 ├── ingestion/
-│   ├── data/                # Local PDF/DOCX/TXT documents; git-ignored
+│   ├── data/                # Original private documents; excluded from FAQ ingestion
+│   ├── faqs/                # Approved customer FAQs; tracked in Git
 │   └── ingest.py            # Your document ingestion script
 ├── public/
 │   └── index.html           # Static chat interface
@@ -91,11 +92,29 @@ export PINECONE_INDEX_NAME="your-index-name"
 | `PINECONE_API_KEY` | Access to the Pinecone index |
 | `PINECONE_INDEX_NAME` | Name of the index containing document vectors |
 
-Both scripts load `.env`. `PINECONE_NAMESPACE` defaults to `documents`. Set `ALLOWED_ORIGINS` to a comma-separated list of frontend origins. Create the Pinecone index with 1536 dimensions and cosine similarity for the default embedding configuration.
+Both scripts load `.env`. `PINECONE_NAMESPACE` defaults to `customer-faqs`. Set `ALLOWED_ORIGINS` to a comma-separated list of frontend origins. Create the Pinecone index with 1536 dimensions and cosine similarity for the default embedding configuration.
 
-### Ingest documents
+### Enable or disable chat
 
-Place PDF, DOCX, or UTF-8 TXT documents in `ingestion/data/` and run:
+Set `CHAT_ENABLED=false` to disable `/api/chat`. It returns HTTP `503` with
+`{"detail":"Chat is temporarily unavailable."}` before retrieval or generation.
+Disabled startup skips OpenAI/Pinecone initialization, so it works without provider
+credentials or connectivity. `/api/health` remains available and includes
+`chat_enabled`.
+
+Set `CHAT_ENABLED=true` to enable chat. If omitted, it defaults to enabled;
+values other than `true` (ignoring case and whitespace) disable it. The setting
+is read at startup. Restart the backend after changing local `.env` values.
+In Vercel, change **Settings → Environment Variables → CHAT_ENABLED** for the
+appropriate environment, then redeploy. Existing deployments keep their previous
+setting; the flag does not cancel requests already in progress.
+
+### Ingest customer FAQs
+
+The public assistant reads only the configured FAQ namespace. Original records in the `documents` namespace are preserved and excluded when using `customer-faqs`. The script ingests only `ingestion/faqs/`; review every file in that directory before uploading. Its contents are tracked in Git. Set `PINECONE_NAMESPACE=customer-faqs` in your deployed backend environment too, then redeploy. Local `.env` changes do not update Vercel.
+
+
+Place approved customer-facing PDF, DOCX, or UTF-8 TXT documents in `ingestion/faqs/` and run:
 
 ```bash
 python ingestion/ingest.py
@@ -216,4 +235,4 @@ ingestion/data/
 | Browser cannot connect | Full backend URL including `/api/chat`, deployment routing, and CORS origin |
 | Answers lack useful context | Successful ingestion, matching embedding configuration, index, and namespace |
 | Requests return server errors | Backend logs, provider credentials, quotas, and serverless time limits |
-| Ingestion command fails | Dependencies are installed and PDF/DOCX/TXT files exist in ingestion/data/ |
+| Ingestion command fails | Dependencies are installed and PDF/DOCX/TXT files exist in ingestion/faqs/ |

@@ -90,6 +90,11 @@ async function sendQuestion(question) {
   const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 60000);
   try {
     const response = await fetch(BACKEND_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question}),signal:controller.signal});
+    if (response.status === 503) {
+      typing.remove();
+      addMessage('Chat is temporarily unavailable. Please check back later.', 'bot', true);
+      return;
+    }
     if (!response.ok) throw new Error(`The server returned ${response.status}. Please try again.`);
     const data = await response.json();
     if (typeof data.answer !== 'string') throw new Error('The server returned an unexpected response.');

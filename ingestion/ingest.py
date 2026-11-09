@@ -11,6 +11,7 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 ROOT = Path(__file__).resolve().parents[1]
+FAQ_DIRECTORY = ROOT / "ingestion/faqs"
 
 
 def load_documents(path: Path) -> list[Document]:
@@ -32,21 +33,21 @@ def main():
     missing = [key for key in required if not os.getenv(key)]
     if missing:
         raise SystemExit(f"Missing environment variables: {', '.join(missing)}")
-    paths = sorted(path for path in (ROOT / "ingestion/data").rglob("*")
+    paths = sorted(path for path in FAQ_DIRECTORY.rglob("*")
                    if path.is_file() and path.suffix.lower() in {".pdf", ".docx", ".txt"})
     if not paths:
-        raise SystemExit("Add PDF, DOCX, or UTF-8 TXT files to ingestion/data/ first.")
+        raise SystemExit("Add customer-facing PDF, DOCX, or UTF-8 TXT files to ingestion/faqs/ first.")
     store = PineconeVectorStore(
         index_name=os.environ["PINECONE_INDEX_NAME"],
         embedding=OpenAIEmbeddings(model="text-embedding-3-small"),
-        namespace=os.getenv("PINECONE_NAMESPACE", "documents"),
+        namespace=os.getenv("PINECONE_NAMESPACE", "customer-faqs"),
     )
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     for path in paths:
         chunks = splitter.split_documents(load_documents(path))
         ids = []
         for position, chunk in enumerate(chunks):
-            chunk.metadata["source"] = path.relative_to(ROOT / "ingestion/data").as_posix()
+            chunk.metadata["source"] = path.relative_to(FAQ_DIRECTORY).as_posix()
             identity = f"{chunk.metadata['source']}:{position}:{chunk.page_content}"
             ids.append(hashlib.sha256(identity.encode()).hexdigest())
         if chunks:
