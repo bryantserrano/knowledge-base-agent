@@ -1,5 +1,13 @@
-# Backend packages are included through this file; do not remove this line.
--r api/requirements.txt
+# Backend dependencies, also listed in api/requirements.txt.
+# Keep these explicit: Vercel parses this file during framework detection.
+fastapi>=0.115,<1
+pydantic>=2,<3
+uvicorn>=0.30,<1
+langchain-core>=1,<2
+langchain-openai>=1,<2
+langchain-pinecone>=0.2,<1
+pinecone>=6,<8
+python-dotenv>=1,<2
 
 # Local PDF/DOCX/TXT ingestion.
 langchain-text-splitters>=0.3,<2

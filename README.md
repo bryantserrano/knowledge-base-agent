@@ -66,7 +66,7 @@ langchain-pinecone>=0.2,<1
 python-dotenv>=1,<2
 ```
 
-The root `requirements.txt` includes backend dependencies plus PDF/DOCX readers and text splitters for local ingestion.
+The root `requirements.txt` explicitly lists backend dependencies plus PDF/DOCX readers and text splitters for local ingestion. Keep its backend entries synchronized with `api/requirements.txt`. Avoid nested `-r` includes here because Vercel's requirements parsing failed on that layout during deployment.
 
 Install the local dependencies:
 
